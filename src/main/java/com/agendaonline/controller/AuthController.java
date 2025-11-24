@@ -3,6 +3,8 @@ package com.agendaonline.controller;
 import com.agendaonline.dto.auth.AuthLoginRequest;
 import com.agendaonline.dto.auth.AuthRegisterRequest;
 import com.agendaonline.dto.auth.AuthResponse;
+import com.agendaonline.dto.auth.ForgotPasswordRequest;
+import com.agendaonline.dto.auth.ResetPasswordRequest;
 import com.agendaonline.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -29,5 +31,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthLoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 }

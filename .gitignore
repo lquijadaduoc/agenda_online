@@ -1,11 +1,22 @@
-target/
+# Maven / Java
+/target/
+*.log
+*.iml
+.classpath
+.project
+.settings/
+
+# IDEs
 .idea/
 .vscode/
-*.iml
-*.log
+.m2/
+
+# OS
 .DS_Store
-**/.classpath
-**/.project
-**/.settings/
-**/.factorypath
-**/.mvn/
+
+# Docker
+*.pid
+/mysql_data/
+
+# Misc
+node_modules/

@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+    List<Appointment> findByProfessionalId(Long professionalId);
     List<Appointment> findByProfessionalIdAndStartDateTimeBetween(Long professionalId, OffsetDateTime from, OffsetDateTime to);
 
     List<Appointment> findByProfessionalIdAndStatus(Long professionalId, AppointmentStatus status);

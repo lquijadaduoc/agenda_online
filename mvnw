@@ -30,6 +30,8 @@
 # ----------------------------------------------------------------------------
 
 set -euf
+[ -n "${MAVEN_ARGS-}" ] || MAVEN_ARGS=""
+ORIG_ARGS="$@"
 [ "${MVNW_VERBOSE-}" != debug ] || set -x
 
 die() {
@@ -72,10 +74,11 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+set -- $ORIG_ARGS
 
 MAVEN_PROJECTBASEDIR="${MAVEN_BASEDIR:-$(cd "$(dirname "$0")" && pwd)}"
 MAVEN_WRAPPER_VERSION="3.2.0"
-MAVEN_USER_HOME="${MAVEN_USER_HOME:-$HOME/.m2}"
+MAVEN_USER_HOME="${MAVEN_USER_HOME:-$MAVEN_PROJECTBASEDIR/.m2}"
 JAR_DIR="$MAVEN_PROJECTBASEDIR/.mvn/wrapper"
 JAR_FILE="$JAR_DIR/maven-wrapper.jar"
 PROPERTIES_FILE="$JAR_DIR/maven-wrapper.properties"

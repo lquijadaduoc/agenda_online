@@ -7,12 +7,17 @@ import com.agendaonline.domain.model.User;
 import com.agendaonline.dto.auth.AuthLoginRequest;
 import com.agendaonline.dto.auth.AuthRegisterRequest;
 import com.agendaonline.dto.auth.AuthResponse;
+import com.agendaonline.dto.auth.ForgotPasswordRequest;
+import com.agendaonline.dto.auth.ResetPasswordRequest;
 import com.agendaonline.repository.ProfessionalRepository;
 import com.agendaonline.repository.ProfessionalSettingsRepository;
+import com.agendaonline.repository.PasswordResetRepository;
 import com.agendaonline.repository.UserRepository;
 import com.agendaonline.security.CustomUserDetails;
 import com.agendaonline.security.JwtService;
 import java.util.Map;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +32,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final ProfessionalRepository professionalRepository;
     private final ProfessionalSettingsRepository settingsRepository;
+    private final PasswordResetRepository passwordResetRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -34,12 +40,14 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        ProfessionalRepository professionalRepository,
                        ProfessionalSettingsRepository settingsRepository,
+                       PasswordResetRepository passwordResetRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.professionalRepository = professionalRepository;
         this.settingsRepository = settingsRepository;
+        this.passwordResetRepository = passwordResetRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
@@ -84,6 +92,29 @@ public class AuthService {
         } catch (Exception ex) {
             throw new BadCredentialsException("Credenciales inválidas");
         }
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
+            var reset = new com.agendaonline.domain.model.PasswordReset();
+            reset.setUser(user);
+            reset.setToken(UUID.randomUUID().toString());
+            reset.setExpiresAt(OffsetDateTime.now().plusHours(24));
+            passwordResetRepository.save(reset);
+        });
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        com.agendaonline.domain.model.PasswordReset reset = passwordResetRepository.findByToken(request.getToken())
+            .filter(pr -> pr.getExpiresAt().isAfter(OffsetDateTime.now()) && pr.getUsedAt() == null)
+            .orElseThrow(() -> new IllegalArgumentException("Token inválido o expirado"));
+        User user = reset.getUser();
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        reset.setUsedAt(OffsetDateTime.now());
+        userRepository.save(user);
+        passwordResetRepository.save(reset);
     }
 
     private AuthResponse generateTokens(User user) {

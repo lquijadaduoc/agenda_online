@@ -7,11 +7,13 @@ import com.agendaonline.domain.model.Professional;
 import com.agendaonline.domain.model.ProfessionalSettings;
 import com.agendaonline.domain.model.ServiceOffering;
 import com.agendaonline.dto.availability.AvailableSlotResponse;
+import com.agendaonline.dto.availability.AvailabilityBlockRequest;
 import com.agendaonline.repository.AppointmentRepository;
 import com.agendaonline.repository.AvailabilityBlockRepository;
 import com.agendaonline.repository.ProfessionalRepository;
 import com.agendaonline.repository.ProfessionalSettingsRepository;
 import com.agendaonline.repository.ServiceOfferingRepository;
+import com.agendaonline.security.CurrentUserService;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -38,17 +40,54 @@ public class AvailabilityService {
     private final ProfessionalRepository professionalRepository;
     private final ProfessionalSettingsRepository settingsRepository;
     private final AppointmentRepository appointmentRepository;
+    private final CurrentUserService currentUserService;
 
     public AvailabilityService(AvailabilityBlockRepository availabilityBlockRepository,
                                ServiceOfferingRepository serviceOfferingRepository,
                                ProfessionalRepository professionalRepository,
                                ProfessionalSettingsRepository settingsRepository,
-                               AppointmentRepository appointmentRepository) {
+                               AppointmentRepository appointmentRepository,
+                               CurrentUserService currentUserService) {
         this.availabilityBlockRepository = availabilityBlockRepository;
         this.serviceOfferingRepository = serviceOfferingRepository;
         this.professionalRepository = professionalRepository;
         this.settingsRepository = settingsRepository;
         this.appointmentRepository = appointmentRepository;
+        this.currentUserService = currentUserService;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AvailabilityBlock> listBlocks() {
+        Professional professional = currentUserService.getCurrentProfessional();
+        return availabilityBlockRepository.findByProfessionalId(professional.getId());
+    }
+
+    @Transactional
+    public AvailabilityBlock createBlock(AvailabilityBlockRequest request) {
+        Professional professional = currentUserService.getCurrentProfessional();
+        AvailabilityBlock block = new AvailabilityBlock();
+        block.setProfessional(professional);
+        applyBlock(block, request);
+        return availabilityBlockRepository.save(block);
+    }
+
+    @Transactional
+    public AvailabilityBlock updateBlock(Long id, AvailabilityBlockRequest request) {
+        Professional professional = currentUserService.getCurrentProfessional();
+        AvailabilityBlock block = availabilityBlockRepository.findById(id)
+            .filter(b -> b.getProfessional().getId().equals(professional.getId()))
+            .orElseThrow(() -> new IllegalArgumentException("Bloque no encontrado"));
+        applyBlock(block, request);
+        return availabilityBlockRepository.save(block);
+    }
+
+    @Transactional
+    public void deleteBlock(Long id) {
+        Professional professional = currentUserService.getCurrentProfessional();
+        AvailabilityBlock block = availabilityBlockRepository.findById(id)
+            .filter(b -> b.getProfessional().getId().equals(professional.getId()))
+            .orElseThrow(() -> new IllegalArgumentException("Bloque no encontrado"));
+        availabilityBlockRepository.delete(block);
     }
 
     @Transactional(readOnly = true)
@@ -124,5 +163,13 @@ public class AvailabilityService {
         } catch (DateTimeException ex) {
             return ZoneId.of("UTC");
         }
+    }
+
+    private void applyBlock(AvailabilityBlock block, AvailabilityBlockRequest request) {
+        block.setWeekday(request.getWeekday());
+        block.setSpecificDate(request.getSpecificDate());
+        block.setStartTime(request.getStartTime());
+        block.setEndTime(request.getEndTime());
+        block.setRecurring(Boolean.TRUE.equals(request.getRecurring()));
     }
 }
