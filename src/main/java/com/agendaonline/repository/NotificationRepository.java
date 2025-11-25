@@ -9,4 +9,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByProfessionalId(Long professionalId);
 
     List<Notification> findByStatus(NotificationStatus status);
+
+    boolean existsByAppointmentIdAndType(Long appointmentId, String type);
 }
