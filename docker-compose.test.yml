@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: agenda_online
+      MYSQL_USER: agenda
+      MYSQL_PASSWORD: agenda
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data_test:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  app:
+    build: .
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/agenda_online?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: agenda
+      DB_PASSWORD: agenda
+      JWT_SECRET: dGhpcy1pcy1hLXZlcnktc2VjcmV0LWtleS1zaG91bGQtYmUtYmFzZTY0LTMyeUJ5dGVzIQ==
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+
+  tester:
+    build:
+      context: ./tests
+    environment:
+      APP_URL: http://app:8080
+    depends_on:
+      - app
+    # mostrará la salida en la consola cuando se ejecute `docker compose up tester`
+
+volumes:
+  mysql_data_test:
